@@ -122,11 +122,11 @@ func (dict *ab[K, V]) Guardar(clave K, dato V) {
 	dict.cantidad++
 }
 
-func (dict *ab[K, V]) Pertenece(clave K) bool {
+func (dict ab[K, V]) Pertenece(clave K) bool {
 	return *(dict.buscar(clave, &dict.raiz)) != nil
 }
 
-func (dict *ab[K, V]) Obtener(clave K) V {
+func (dict ab[K, V]) Obtener(clave K) V {
 	nodo := dict.buscar(clave, &dict.raiz)
 	if *nodo == nil {
 		panic("La clave no pertenece al diccionario")
@@ -134,7 +134,7 @@ func (dict *ab[K, V]) Obtener(clave K) V {
 	return (*nodo).dato
 }
 
-func (dict *ab[K, V]) Cantidad() int {
+func (dict ab[K, V]) Cantidad() int {
 	return dict.cantidad
 }
 
