@@ -260,12 +260,12 @@ func (nodo *nodoAb[K, V]) buscarMinimo(cmp funcCmp[K], desde *K) *nodoAb[K, V] {
 	comparacion := cmp(*desde, nodo.clave)
 	//la clave inicial es menor a la clave del nodo en el que estamos parados
 	//y la que sigue es menor o igual
-	if comparacion < VALOR_CMP && cmp(*desde, nodo.izq.clave) <= VALOR_CMP {
+	if comparacion < VALOR_CMP && nodo.izq != nil && cmp(*desde, nodo.izq.clave) <= VALOR_CMP {
 		return nodo.izq.buscarMinimo(cmp, desde)
 	}
 
 	//la clave inicial es mayor a la clave del nodo en el que estamos parados
-	if comparacion > VALOR_CMP {
+	if comparacion > VALOR_CMP && nodo.der != nil {
 		return nodo.der.buscarMinimo(cmp, desde)
 	}
 
