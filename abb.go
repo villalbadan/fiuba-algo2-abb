@@ -260,18 +260,18 @@ func (nodo *nodoAb[K, V]) buscarMinimo(pila TDAPila.Pila[*nodoAb[K, V]],
 
 	comparacion := cmp(*desde, nodo.clave)
 	//la clave inicial es menor a la clave del nodo en el que estamos parados
-	// y la siguiente clave menor SIGUE SIENDO MENOR
-	if comparacion < VALOR_CMP && cmp(*desde, nodo.izq.clave) < VALOR_CMP {
+	//la siguiente clave a evaluar es mayor o igual
+	if comparacion < VALOR_CMP && cmp(*desde, nodo.izq.clave) <= VALOR_CMP {
 		return nodo.izq.buscarMinimo(pila, cmp, desde)
 	}
 
 	//la clave inicial es mayor a la clave del nodo en el que estamos parados
-	// y la siguiente clave mayor SIGUE SIENDO MAYOR
-	if comparacion > VALOR_CMP && cmp(*desde, nodo.der.clave) > VALOR_CMP {
+	//la siguiente clave a evaluar sigue siendo menor o igual
+	if comparacion > VALOR_CMP && cmp(*desde, nodo.der.clave) >= VALOR_CMP {
 		return nodo.der.buscarMinimo(pila, cmp, desde)
 	}
 
-	//igual a la clave actual
+	//igual o más proximo a la clave actual dentro del rango
 	return nodo
 
 }
