@@ -184,7 +184,7 @@ func (dict *ab[K, V]) crearIter(desde *K, hasta *K) IterDiccionario[K, V] {
 	if desde == nil {
 		dict.raiz.buscarHijosIzquierdayApilar(iter.pilaElementos)
 	} else {
-		nodoInicial := dict.raiz.buscarMinimo(iter.pilaElementos, dict.cmp, desde)
+		nodoInicial := dict.raiz.buscarMinimo(dict.cmp, desde)
 		nodoInicial.buscarHijosIzquierdayApilar(iter.pilaElementos)
 	}
 	return &iter
@@ -252,23 +252,21 @@ func (nodo *nodoAb[K, V]) iterarRango(desde *K, hasta *K, visitar func(K, V) boo
 
 }
 
-func (nodo *nodoAb[K, V]) buscarMinimo(pila TDAPila.Pila[*nodoAb[K, V]],
-	cmp funcCmp[K], desde *K) *nodoAb[K, V] {
+func (nodo *nodoAb[K, V]) buscarMinimo(cmp funcCmp[K], desde *K) *nodoAb[K, V] {
 	if nodo == nil {
 		return nil
 	}
 
 	comparacion := cmp(*desde, nodo.clave)
 	//la clave inicial es menor a la clave del nodo en el que estamos parados
-	//la siguiente clave a evaluar es mayor o igual
+	//y la que sigue es menor o igual
 	if comparacion < VALOR_CMP && cmp(*desde, nodo.izq.clave) <= VALOR_CMP {
-		return nodo.izq.buscarMinimo(pila, cmp, desde)
+		return nodo.izq.buscarMinimo(cmp, desde)
 	}
 
 	//la clave inicial es mayor a la clave del nodo en el que estamos parados
-	//la siguiente clave a evaluar sigue siendo menor o igual
-	if comparacion > VALOR_CMP && cmp(*desde, nodo.der.clave) >= VALOR_CMP {
-		return nodo.der.buscarMinimo(pila, cmp, desde)
+	if comparacion > VALOR_CMP {
+		return nodo.der.buscarMinimo(cmp, desde)
 	}
 
 	//igual o más proximo a la clave actual dentro del rango
