@@ -28,7 +28,6 @@ type nodoAb[K comparable, V any] struct {
 type iteradorDict[K comparable, V any] struct {
 	diccionario   *ab[K, V]
 	actual        *nodoAb[K, V]
-	rangoMin      *K
 	rangoMax      *K
 	pilaElementos TDAPila.Pila[*nodoAb[K, V]]
 }
@@ -178,6 +177,18 @@ func (nodo *nodoAb[K, V]) iterar(visitar func(K, V) bool) {
 }
 
 // ################################### PRIMITIVAS ITERADOR EXTERNO ################################################
+func (dict *ab[K, V]) crearIter(desde *K, hasta *K) IterDiccionario[K, V] {
+	iter := iteradorDict[K, V]{diccionario: dict, rangoMax: hasta}
+	iter.pilaElementos = TDAPila.CrearPilaDinamica[*nodoAb[K, V]]()
+	if desde == nil {
+		dict.raiz.buscarHijosIzquierdayApilar(iter.pilaElementos)
+	} else {
+		nodoInicial := dict.raiz.buscarMinimo(iter.pilaElementos, dict.cmp, desde)
+		nodoInicial.buscarHijosIzquierdayApilar(iter.pilaElementos)
+	}
+	return &iter
+}
+
 func (nodo *nodoAb[K, V]) buscarHijosIzquierdayApilar(pila TDAPila.Pila[*nodoAb[K, V]]) *nodoAb[K, V] {
 	if nodo == nil {
 		return nil
@@ -187,10 +198,7 @@ func (nodo *nodoAb[K, V]) buscarHijosIzquierdayApilar(pila TDAPila.Pila[*nodoAb[
 }
 
 func (dict *ab[K, V]) Iterador() IterDiccionario[K, V] {
-	iter := iteradorDict[K, V]{diccionario: dict, rangoMin: nil, rangoMax: nil}
-	iter.pilaElementos = TDAPila.CrearPilaDinamica[*nodoAb[K, V]]()
-	iter.actual = dict.raiz.buscarHijosIzquierdayApilar(iter.pilaElementos) //dict.raiz,
-	return &iter
+	return dict.crearIter(nil, nil)
 }
 
 func (iter *iteradorDict[K, V]) HaySiguiente() bool {
@@ -218,8 +226,13 @@ func (iter *iteradorDict[K, V]) Siguiente() K {
 
 // ################################### PRIMITIVAS DICCIONARIO ORDENADO #############################################
 
-func (dictOrdenado ab[K, V]) IterarRango(desde *K, hasta *K, visitar func(clave K, dato V) bool) {
-	dictOrdenado.raiz.iterarRango(desde, hasta, visitar, dictOrdenado.cmp)
+func (dict ab[K, V]) IteradorRango(desde *K, hasta *K) IterDiccionario[K, V] {
+	return dict.crearIter(desde, hasta)
+
+}
+
+func (dict ab[K, V]) IterarRango(desde *K, hasta *K, visitar func(clave K, dato V) bool) {
+	dict.raiz.iterarRango(desde, hasta, visitar, dict.cmp)
 }
 
 func (nodo *nodoAb[K, V]) iterarRango(desde *K, hasta *K, visitar func(K, V) bool, cmp funcCmp[K]) {
@@ -238,26 +251,20 @@ func (nodo *nodoAb[K, V]) iterarRango(desde *K, hasta *K, visitar func(K, V) boo
 
 }
 
-func (nodo *nodoAb[K, V]) buscarValorMinyApilar(pila TDAPila.Pila[*nodoAb[K, V]],
+func (nodo *nodoAb[K, V]) buscarMinimo(pila TDAPila.Pila[*nodoAb[K, V]],
 	cmp funcCmp[K], desde *K) *nodoAb[K, V] {
 	if nodo == nil {
 		return nil
 	}
-	pila.Apilar(nodo)
-	if nodo.izq == nil {
-		return nodo
+
+	comparacion := cmp(*desde, nodo.clave)
+
+	//desde es menor a la clave actual
+	if comparacion < VALOR_CMP {
+		return nodo.izq.buscarMinimo(pila, cmp, desde)
 	}
-	if cmp(nodo.izq.clave, *desde) < VALOR_CMP {
-		return nodo
-	}
-	return nodo.izq.buscarValorMinyApilar(pila, cmp, desde)
-}
 
-func (dictOrdenado ab[K, V]) IteradorRango(desde *K, hasta *K) IterDiccionario[K, V] {
-
-	iter := iteradorDict[K, V]{diccionario: &dictOrdenado, rangoMin: desde, rangoMax: hasta}
-	iter.actual = dictOrdenado.raiz.buscarValorMinyApilar(iter.pilaElementos, dictOrdenado.cmp, iter.rangoMin)
-
-	return &iter
+	//desde es mayor o igual a la clave actual
+	return nodo
 
 }
