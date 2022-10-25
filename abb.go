@@ -28,6 +28,7 @@ type nodoAb[K comparable, V any] struct {
 type iteradorDict[K comparable, V any] struct {
 	diccionario   *ab[K, V]
 	actual        *nodoAb[K, V]
+	rangoMin      *K
 	rangoMax      *K
 	pilaElementos TDAPila.Pila[*nodoAb[K, V]]
 }
@@ -67,15 +68,26 @@ func (dict *ab[K, V]) buscar(clave K, nodoActual **nodoAb[K, V]) **nodoAb[K, V] 
 
 // ################################### Aux. Borrar #########################################################
 
-func noTieneHijos[K comparable, V any](nodo **nodoAb[K, V]) bool {
-	return (*nodo).izq == nil && (*nodo).der == nil
-}
-
+//no estoy segura de esta función, se hizo lo que se pudo
 func (dict *ab[K, V]) reemplazante(nodoActual **nodoAb[K, V]) *nodoAb[K, V] {
-	if noTieneHijos(nodoActual) || (*nodoActual).izq == nil {
+
+	if *nodoActual == nil {
+		return nil
+	}
+
+	if noTieneHijos(nodoActual) {
 		return *nodoActual
 	}
-	return dict.reemplazante(&(*nodoActual).izq)
+
+	nodo := dict.reemplazante(&(*nodoActual).izq)
+	if nodo == nil {
+		nodo = dict.reemplazante(&(*nodoActual).der)
+	}
+	return nodo
+}
+
+func noTieneHijos[K comparable, V any](nodo **nodoAb[K, V]) bool {
+	return (*nodo).izq == nil && (*nodo).der == nil
 }
 
 func (dict *ab[K, V]) transplantar(nodo **nodoAb[K, V]) {
@@ -92,8 +104,8 @@ func (dict *ab[K, V]) transplantar(nodo **nodoAb[K, V]) {
 	}
 
 	//nodo con dos hijos
-	//Busco reemplazante menor de la derecha
-	nuevoNodo := dict.reemplazante(&(*nodo).der)
+	//Busco reemplazante menor
+	nuevoNodo := dict.reemplazante(&(*nodo).izq)
 	nuevaClave := nuevoNodo.clave
 	nuevoDato := dict.Borrar(nuevaClave)
 	dict.cantidad++ //Para contrarrestar el Borrar de la linea de arriba
@@ -154,8 +166,6 @@ func (dict *ab[K, V]) Borrar(clave K) V {
 
 }
 
-//Iterador interno ------------------------------------------------->>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-
 func (dict ab[K, V]) Iterar(visitar func(K, V) bool) {
 	dict.raiz.iterar(visitar)
 }
@@ -177,15 +187,13 @@ func (nodo *nodoAb[K, V]) iterar(visitar func(K, V) bool) {
 }
 
 // ################################### PRIMITIVAS ITERADOR EXTERNO ################################################
-
 func (dict *ab[K, V]) crearIter(desde *K, hasta *K) IterDiccionario[K, V] {
-	iter := iteradorDict[K, V]{diccionario: dict, rangoMax: hasta}
+	iter := iteradorDict[K, V]{diccionario: dict, rangoMin: desde, rangoMax: hasta}
 	iter.pilaElementos = TDAPila.CrearPilaDinamica[*nodoAb[K, V]]()
 	if desde == nil {
-		dict.raiz.buscarHijosIzquierdayApilar(iter.pilaElementos)
+		iter.actual = dict.raiz.buscarHijosIzquierdayApilar(iter.pilaElementos)
 	} else {
-		nodoInicial := dict.raiz.buscarMinimo(dict.cmp, desde)
-		nodoInicial.buscarHijosIzquierdayApilar(iter.pilaElementos)
+		iter.actual = dict.raiz.buscarMinimo(iter.pilaElementos, dict.cmp, iter.rangoMin)
 	}
 	return &iter
 }
@@ -195,6 +203,9 @@ func (nodo *nodoAb[K, V]) buscarHijosIzquierdayApilar(pila TDAPila.Pila[*nodoAb[
 		return nil
 	}
 	pila.Apilar(nodo)
+	if nodo.izq == nil {
+		return nodo
+	}
 	return nodo.izq.buscarHijosIzquierdayApilar(pila)
 }
 
@@ -203,6 +214,10 @@ func (dict *ab[K, V]) Iterador() IterDiccionario[K, V] {
 }
 
 func (iter *iteradorDict[K, V]) HaySiguiente() bool {
+	if iter.rangoMax != nil {
+		resultadoCmp := iter.diccionario.cmp(iter.actual.clave, *iter.rangoMax)
+		return !iter.pilaElementos.EstaVacia() && resultadoCmp < VALOR_CMP
+	}
 	return !iter.pilaElementos.EstaVacia()
 }
 
@@ -221,6 +236,9 @@ func (iter *iteradorDict[K, V]) Siguiente() K {
 	nodoActual := iter.pilaElementos.Desapilar()
 	if nodoActual.der != nil {
 		nodoActual.der.buscarHijosIzquierdayApilar(iter.pilaElementos)
+	}
+	if !iter.pilaElementos.EstaVacia() {
+		iter.actual = iter.pilaElementos.VerTope()
 	}
 	return nodoActual.clave
 }
@@ -252,24 +270,29 @@ func (nodo *nodoAb[K, V]) iterarRango(desde *K, hasta *K, visitar func(K, V) boo
 
 }
 
-func (nodo *nodoAb[K, V]) buscarMinimo(cmp funcCmp[K], desde *K) *nodoAb[K, V] {
+func (nodo *nodoAb[K, V]) buscarMinimo(pila TDAPila.Pila[*nodoAb[K, V]], cmp funcCmp[K], desde *K) *nodoAb[K, V] {
 	if nodo == nil {
 		return nil
 	}
 
 	comparacion := cmp(*desde, nodo.clave)
 	//la clave inicial es menor a la clave del nodo en el que estamos parados
-	//y la que sigue es menor o igual
+	//la siguiente clave a evaluar es mayor o igual
 	if comparacion < VALOR_CMP && nodo.izq != nil && cmp(*desde, nodo.izq.clave) <= VALOR_CMP {
-		return nodo.izq.buscarMinimo(cmp, desde)
+		pila.Apilar(nodo)
+		return nodo.izq.buscarMinimo(pila, cmp, desde)
 	}
 
 	//la clave inicial es mayor a la clave del nodo en el que estamos parados
+	//la siguiente clave a evaluar sigue siendo menor o igual
 	if comparacion > VALOR_CMP && nodo.der != nil {
-		return nodo.der.buscarMinimo(cmp, desde)
+		return nodo.der.buscarMinimo(pila, cmp, desde)
 	}
 
 	//igual o más proximo a la clave actual dentro del rango
+	if comparacion <= VALOR_CMP {
+		pila.Apilar(nodo)
+	}
 	return nodo
 
 }
