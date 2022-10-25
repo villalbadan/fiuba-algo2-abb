@@ -2,6 +2,7 @@ package diccionario_test
 
 import (
 	TDADiccionario "diccionario"
+	"sort"
 	"strings"
 
 	//"fmt"
@@ -9,8 +10,6 @@ import (
 
 	"github.com/stretchr/testify/require"
 )
-
-var TAMS_VOLUMEN = []int{12500, 25000, 50000, 100000, 200000, 400000}
 
 func mayorEntreInts(clave1, clave2 int) int {
 	return clave1 - clave2
@@ -22,7 +21,7 @@ func mayorEntreStrings(clave1, clave2 string) int {
 
 func TestDiccionarioVacio(t *testing.T) {
 	dicc := TDADiccionario.CrearABB[int, string](mayorEntreInts)
-	t.Log("Comprueba que Diccionario vacio no tiene claves")
+
 	require.PanicsWithValue(t, "La clave no pertenece al diccionario", func() { dicc.Obtener(2) })
 	require.PanicsWithValue(t, "La clave no pertenece al diccionario", func() { dicc.Borrar(2) })
 	require.False(t, dicc.Pertenece(2))
@@ -32,12 +31,61 @@ func TestDiccionarioVacio(t *testing.T) {
 
 func TestDiccionarioUnElemento(t *testing.T) {
 	dicc := TDADiccionario.CrearABB[int, int](mayorEntreInts)
-	t.Log("Comprueba que Diccionario con un elemento tiene esa Clave, unicamente")
+
 	dicc.Guardar(0, 56)
 	require.NotPanics(t, func() { dicc.Obtener(0) })
 	require.EqualValues(t, 56, dicc.Obtener(0))
-	require.False(t, dicc.Pertenece(6))
+	require.True(t, dicc.Pertenece(0))
 	require.EqualValues(t, 1, dicc.Cantidad())
+	require.EqualValues(t, 56, dicc.Borrar(0))
+
+	require.PanicsWithValue(t, "La clave no pertenece al diccionario", func() { dicc.Obtener(0) })
+	require.PanicsWithValue(t, "La clave no pertenece al diccionario", func() { dicc.Borrar(0) })
+}
+
+func TestBorrarVariosElementos(t *testing.T) {
+	dicc := TDADiccionario.CrearABB[int, string](mayorEntreInts)
+
+	dicc.Guardar(10, "Argentina")
+	dicc.Guardar(2, "Brasil")
+	dicc.Guardar(5, "Peru")
+	dicc.Guardar(3, "Chile")
+	dicc.Guardar(1, "EEUU")
+	dicc.Guardar(7, "Italia")
+	dicc.Guardar(12, "Australia")
+	dicc.Guardar(14, "China")
+	dicc.Guardar(13, "Mexico")
+
+	require.EqualValues(t, 9, dicc.Cantidad())
+	require.True(t, dicc.Pertenece(10))
+	require.True(t, dicc.Pertenece(5))
+	require.EqualValues(t, "Brasil", dicc.Obtener(2))
+	require.EqualValues(t, "Australia", dicc.Obtener(12))
+
+	//Borro una hoja
+	require.EqualValues(t, "EEUU", dicc.Borrar(1))
+	require.PanicsWithValue(t, "La clave no pertenece al diccionario", func() { dicc.Borrar(1) })
+	require.EqualValues(t, 8, dicc.Cantidad())
+	//Borro un elemento con un solo hijo
+	require.EqualValues(t, "China", dicc.Borrar(14))
+	require.PanicsWithValue(t, "La clave no pertenece al diccionario", func() { dicc.Borrar(14) })
+	require.EqualValues(t, 7, dicc.Cantidad())
+	require.True(t, dicc.Pertenece(13))
+	//Borro un elemento con dos hijos
+	require.EqualValues(t, "Peru", dicc.Borrar(5))
+	require.PanicsWithValue(t, "La clave no pertenece al diccionario", func() { dicc.Borrar(5) })
+	require.EqualValues(t, 6, dicc.Cantidad())
+	require.True(t, dicc.Pertenece(3))
+	require.True(t, dicc.Pertenece(7))
+	require.EqualValues(t, "Italia", dicc.Obtener(7))
+	//Borro la raíz
+	require.EqualValues(t, "Argentina", dicc.Borrar(10))
+	require.PanicsWithValue(t, "La clave no pertenece al diccionario", func() { dicc.Borrar(10) })
+	require.EqualValues(t, 5, dicc.Cantidad())
+	require.True(t, dicc.Pertenece(7))
+	require.True(t, dicc.Pertenece(12))
+	require.EqualValues(t, "Italia", dicc.Obtener(7))
+
 }
 
 func TestUnElementoPrimitivas(t *testing.T) {
@@ -60,45 +108,6 @@ func TestUnElementoPrimitivas(t *testing.T) {
 	require.NotPanics(t, func() { dicc.Obtener(5) })
 	require.EqualValues(t, 65, dicc.Obtener(5))
 	require.True(t, dicc.Pertenece(5))
-}
-
-func TestBorrarVariosElementos(t *testing.T) {
-	dicc := TDADiccionario.CrearABB[int, string](mayorEntreInts)
-	dicc.Guardar(10, "Argentina")
-	dicc.Guardar(2, "Brasil")
-	dicc.Guardar(5, "Peru")
-	dicc.Guardar(3, "Chile")
-	dicc.Guardar(1, "EEUU")
-	dicc.Guardar(7, "Italia")
-	dicc.Guardar(12, "Australia")
-	dicc.Guardar(14, "China")
-	dicc.Guardar(13, "Mexico")
-
-	require.EqualValues(t, 9, dicc.Cantidad())
-	require.True(t, dicc.Pertenece(10))
-	require.True(t, dicc.Pertenece(5))
-	require.EqualValues(t, "Brasil", dicc.Obtener(2))
-	require.EqualValues(t, "Australia", dicc.Obtener(12))
-
-	//Borro una hoja
-	require.EqualValues(t, "EEUU", dicc.Borrar(1))
-	require.EqualValues(t, 8, dicc.Cantidad())
-	//Borro un elemento con un solo hijo
-	require.EqualValues(t, "Brasil", dicc.Borrar(2))
-	require.EqualValues(t, 7, dicc.Cantidad())
-	require.True(t, dicc.Pertenece(3))
-	//Borro un elemento con dos hijos
-	require.EqualValues(t, "Australia", dicc.Borrar(12))
-	require.EqualValues(t, 6, dicc.Cantidad())
-	require.True(t, dicc.Pertenece(13))
-	require.True(t, dicc.Pertenece(14))
-	require.EqualValues(t, "Italia", dicc.Obtener(7))
-	//Borro la raíz
-	require.EqualValues(t, "Argentina", dicc.Borrar(10))
-	require.EqualValues(t, 5, dicc.Cantidad())
-	require.True(t, dicc.Pertenece(7))
-	require.True(t, dicc.Pertenece(5))
-	require.EqualValues(t, "Peru", dicc.Obtener(5))
 }
 
 // TESTS HEREDADOS DE LA CATEDRA PARA DICCIONARIOS DE HASH -------->>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -355,4 +364,115 @@ func TestPruebaIterarTrasBorrados(t *testing.T) {
 	require.EqualValues(t, "A", v1)
 	require.EqualValues(t, clave1, iter.Siguiente())
 	require.False(t, iter.HaySiguiente())
+}
+
+func TestReemplazoDatos(t *testing.T) {
+
+	dicc := TDADiccionario.CrearABB[string, string](strings.Compare)
+
+	dicc.Guardar("Belgrano", "Azul")
+	dicc.Guardar("Sarmiento", "Verde")
+	dicc.Guardar("San Martin", "Rojo")
+	require.EqualValues(t, "Verde", dicc.Obtener("Sarmiento"))
+	require.EqualValues(t, 3, dicc.Cantidad())
+	dicc.Guardar("Sarmiento", "Marron")
+	require.EqualValues(t, "Marron", dicc.Obtener("Sarmiento"))
+	require.EqualValues(t, 3, dicc.Cantidad())
+	dicc.Guardar("Rosas", "Amarillo")
+	require.EqualValues(t, 4, dicc.Cantidad())
+	dicc.Guardar("Belgrano", "Blanco")
+	require.EqualValues(t, 4, dicc.Cantidad())
+	require.EqualValues(t, "Blanco", dicc.Obtener("Belgrano"))
+	require.EqualValues(t, "Amarillo", dicc.Obtener("Rosas"))
+
+}
+
+func TestDiccionarioTipoLista(t *testing.T) {
+
+	dicc := TDADiccionario.CrearABB[int, int](mayorEntreInts)
+
+	dicc.Guardar(0, 34)
+	dicc.Guardar(1, 3)
+	dicc.Guardar(2, 5)
+	dicc.Guardar(3, 8)
+	dicc.Guardar(5, -2)
+	dicc.Guardar(7, 96)
+	dicc.Guardar(10, 24)
+
+	require.True(t, dicc.Pertenece(7))
+	require.True(t, dicc.Pertenece(10))
+
+}
+
+func TestIteraEnOrden(t *testing.T) {
+
+	dicc := TDADiccionario.CrearABB[string, int](strings.Compare)
+	arregloClaves := []string{"G", "K", "M", "B", "C", "W", "O", "A", "V", "F"}
+	arregloDatos := []int{4, 5, 6, 1, 2, 9, 7, 0, 8, 3}
+
+	for i := 0; i < len(arregloClaves); i++ {
+		dicc.Guardar(arregloClaves[i], arregloDatos[i])
+	}
+	sort.Strings(arregloClaves)
+	i := 0
+	dicc.Iterar(func(clave string, dato int) bool {
+		require.EqualValues(t, i, dato)
+		i++
+		return true
+	})
+
+}
+
+func TestIteradorVacio(t *testing.T) {
+
+	dicc := TDADiccionario.CrearABB[int, int](mayorEntreInts)
+	iter := dicc.Iterador()
+
+	require.False(t, iter.HaySiguiente())
+	require.PanicsWithValue(t, "El iterador termino de iterar", func() { iter.VerActual() })
+	require.PanicsWithValue(t, "El iterador termino de iterar", func() { iter.Siguiente() })
+
+}
+
+func TestIteradorEnOrden(t *testing.T) {
+
+	dicc := TDADiccionario.CrearABB[int, string](mayorEntreInts)
+
+	arregloClaves := []int{15, 12, 8, 2, 4, 34, 26, 51, 16, 22, 45, 30}
+	arregloDatos := []string{"Vaca", "Gato", "Perro", "Pollo", "Raton", "Paloma",
+		"Avestruz", "Pez", "Tigre", "Leon", "Jirafa", "Oso"}
+
+	for i := 0; i < len(arregloClaves); i++ {
+		dicc.Guardar(arregloClaves[i], arregloDatos[i])
+	}
+	iter := dicc.Iterador()
+	sort.Ints(arregloClaves)
+
+	for i := 0; i < len(arregloClaves); i++ {
+		require.EqualValues(t, arregloClaves[i], iter.Siguiente())
+	}
+
+}
+
+func TestIteradorConRango(t *testing.T) {
+
+	dicc := TDADiccionario.CrearABB[int, string](mayorEntreInts)
+	arregloClaves := []int{8, 1, 24, 12, 32, 5, 149, 224}
+	arregloDatos := []string{"A", "Ante", "Bajo", "Contra", "Desde", "Entre", "Hacia", "Hasta"}
+	desde := 10
+	hasta := 100
+
+	for i := 0; i < len(arregloClaves); i++ {
+		dicc.Guardar(arregloClaves[i], arregloDatos[i])
+	}
+	iterRango := dicc.IteradorRango(&desde, &hasta)
+	sort.Ints(arregloClaves)
+	arregloClaves = arregloClaves[3:6] // Valores que entran dentro del rango
+	primeraClave, _ := iterRango.VerActual()
+	require.EqualValues(t, 12, primeraClave) // para verificar que se eligio bien el primer elemento
+
+	for i := 0; iterRango.HaySiguiente(); i++ {
+		require.EqualValues(t, arregloClaves[i], iterRango.Siguiente())
+	}
+
 }
