@@ -255,16 +255,49 @@ func (nodo *nodoAb[K, V]) iterarRango(desde *K, hasta *K, visitar func(K, V) boo
 		return
 	}
 
-	if desde == nil || nodo.izq != nil && cmp(nodo.clave, *desde) > VALOR_CMP {
+	if desde == nil && hasta != nil {
 		nodo.izq.iterarRango(desde, hasta, visitar, cmp)
+		if cmp(nodo.clave, *hasta) < VALOR_CMP && !visitar(nodo.clave, nodo.dato) {
+			return
+		}
+		if cmp(nodo.clave, *hasta) < VALOR_CMP {
+			nodo.der.iterarRango(desde, hasta, visitar, cmp)
+		}
 	}
-	if cmp(nodo.clave, *desde) > VALOR_CMP && cmp(nodo.clave, *hasta) < VALOR_CMP &&
-		!visitar(nodo.clave, nodo.dato) {
-		return
-	}
-	if hasta == nil || nodo.der != nil && cmp(nodo.clave, *hasta) < VALOR_CMP {
+	if desde != nil && hasta == nil {
+		if cmp(nodo.clave, *desde) > VALOR_CMP {
+			nodo.izq.iterarRango(desde, hasta, visitar, cmp)
+		}
+		if cmp(nodo.clave, *desde) > VALOR_CMP && !visitar(nodo.clave, nodo.dato) {
+			return
+		}
 		nodo.der.iterarRango(desde, hasta, visitar, cmp)
+
 	}
+	if desde != nil && hasta != nil {
+		if cmp(nodo.clave, *desde) > VALOR_CMP {
+			nodo.izq.iterarRango(desde, hasta, visitar, cmp)
+		}
+		if cmp(nodo.clave, *desde) > VALOR_CMP && cmp(nodo.clave, *hasta) < VALOR_CMP &&
+			!visitar(nodo.clave, nodo.dato) {
+			return
+		}
+		if cmp(nodo.clave, *hasta) < VALOR_CMP {
+			nodo.der.iterarRango(desde, hasta, visitar, cmp)
+		}
+
+	}
+
+	// if desde == nil || nodo.izq != nil && cmp(nodo.clave, *desde) > VALOR_CMP {
+	// 	nodo.izq.iterarRango(desde, hasta, visitar, cmp)
+	// }
+	// if cmp(nodo.clave, *desde) > VALOR_CMP && cmp(nodo.clave, *hasta) < VALOR_CMP &&
+	// 	!visitar(nodo.clave, nodo.dato) {
+	// 	return
+	// }
+	// if hasta == nil || nodo.der != nil && cmp(nodo.clave, *hasta) < VALOR_CMP {
+	// 	nodo.der.iterarRango(desde, hasta, visitar, cmp)
+	// }
 
 }
 
