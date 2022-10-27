@@ -273,27 +273,20 @@ func TestIterarConRangoSuma(t *testing.T) {
 //Basadas en las pruebas de benchmark de hash de la cátedra con algunas modificaciones para que se ingresen elementos
 //desordenados e itere ordenadamente
 
-func contiene(l []int, elem int) bool {
-	for _, v := range l {
-		if v == elem {
-			return true
-		}
-	}
-	return false
+func swap(x *int, y *int) {
+	*x, *y = *y, *x
 }
 
 func listaNumerosRandoms(n int) []int {
 
-	claves := make([]int, 0, n)
+	claves := make([]int, n)
 	for i := 0; i < n; i++ {
+		claves[i] = i
+	}
 
-		for {
-			num := rand.Intn(987654321)
-			if !contiene(claves, num) {
-				claves = append(claves, num)
-				break
-			}
-		}
+	for i := 0; i < n; i++ {
+		j := rand.Intn(n)
+		swap(&claves[i], &claves[j])
 	}
 
 	return claves
@@ -301,7 +294,6 @@ func listaNumerosRandoms(n int) []int {
 
 func ejecutarPruebaVolumen(b *testing.B, n int) {
 	dic := TDADiccionario.CrearABB[int, string](mayorEntreInts)
-
 	claves := listaNumerosRandoms(n)
 	valores := make([]string, n)
 
