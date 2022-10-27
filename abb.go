@@ -243,33 +243,27 @@ func (dict ab[K, V]) IteradorRango(desde *K, hasta *K) IterDiccionario[K, V] {
 }
 
 func (dict ab[K, V]) IterarRango(desde *K, hasta *K, visitar func(clave K, dato V) bool) {
-	dict.raiz.iterarRango(desde, hasta, visitar, dict.cmp)
+	if desde == nil && hasta == nil {
+		dict.raiz.iterar(visitar)
+	} else if desde == nil || hasta == nil || dict.cmp(*hasta, *desde) > VALOR_CMP {
+		dict.raiz.iterarRango(desde, hasta, visitar, dict.cmp)
+	}
 }
 
 func (nodo *nodoAb[K, V]) iterarRango(desde *K, hasta *K, visitar func(K, V) bool, cmp funcCmp[K]) {
 	if nodo == nil {
 		return
 	}
-	if desde == nil && hasta == nil {
-		nodo.iterar(visitar)
-	}
 
-	if nodo.izq != nil {
-		if desde == nil {
-			nodo.izq.iterar(visitar)
-		} else if cmp(nodo.clave, *desde) > VALOR_CMP {
-			nodo.izq.iterarRango(desde, hasta, visitar, cmp)
-		}
+	if desde == nil || nodo.izq != nil && cmp(nodo.clave, *desde) > VALOR_CMP {
+		nodo.izq.iterarRango(desde, hasta, visitar, cmp)
 	}
-	if !visitar(nodo.clave, nodo.dato) {
+	if cmp(nodo.clave, *desde) > VALOR_CMP && cmp(nodo.clave, *hasta) < VALOR_CMP &&
+		!visitar(nodo.clave, nodo.dato) {
 		return
 	}
-	if nodo.der != nil {
-		if hasta == nil {
-			nodo.der.iterar(visitar)
-		} else if cmp(nodo.clave, *hasta) > VALOR_CMP {
-			nodo.der.iterarRango(desde, hasta, visitar, cmp)
-		}
+	if hasta == nil || nodo.der != nil && cmp(nodo.clave, *hasta) < VALOR_CMP {
+		nodo.der.iterarRango(desde, hasta, visitar, cmp)
 	}
 
 }
