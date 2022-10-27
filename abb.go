@@ -68,26 +68,16 @@ func (dict *ab[K, V]) buscar(clave K, nodoActual **nodoAb[K, V]) **nodoAb[K, V] 
 
 // ################################### Aux. Borrar #########################################################
 
-//no estoy segura de esta función, se hizo lo que se pudo
-func (dict *ab[K, V]) reemplazante(nodoActual **nodoAb[K, V]) *nodoAb[K, V] {
-
-	if *nodoActual == nil {
-		return nil
-	}
-
-	if noTieneHijos(nodoActual) {
-		return *nodoActual
-	}
-
-	nodo := dict.reemplazante(&(*nodoActual).izq)
-	if nodo == nil {
-		nodo = dict.reemplazante(&(*nodoActual).der)
-	}
-	return nodo
-}
-
 func noTieneHijos[K comparable, V any](nodo **nodoAb[K, V]) bool {
 	return (*nodo).izq == nil && (*nodo).der == nil
+}
+
+func (dict *ab[K, V]) reemplazante(nodoActual **nodoAb[K, V]) *nodoAb[K, V] {
+
+	if noTieneHijos(nodoActual) || (*nodoActual).izq == nil {
+		return *nodoActual
+	}
+	return dict.reemplazante(&(*nodoActual).izq)
 }
 
 func (dict *ab[K, V]) transplantar(nodo **nodoAb[K, V]) {
@@ -104,8 +94,8 @@ func (dict *ab[K, V]) transplantar(nodo **nodoAb[K, V]) {
 	}
 
 	//nodo con dos hijos
-	//Busco reemplazante menor
-	nuevoNodo := dict.reemplazante(&(*nodo).izq)
+	//Busco reemplazante menor de la derecha
+	nuevoNodo := dict.reemplazante(&(*nodo).der)
 	nuevaClave := nuevoNodo.clave
 	nuevoDato := dict.Borrar(nuevaClave)
 	dict.cantidad++ //Para contrarrestar el Borrar de la linea de arriba
@@ -165,6 +155,8 @@ func (dict *ab[K, V]) Borrar(clave K) V {
 	return borrado
 
 }
+
+//Iterador interno ------------------------------------------------->>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 func (dict ab[K, V]) Iterar(visitar func(K, V) bool) {
 	dict.raiz.iterar(visitar)
@@ -284,7 +276,6 @@ func (nodo *nodoAb[K, V]) buscarMinimo(pila TDAPila.Pila[*nodoAb[K, V]], cmp fun
 	}
 
 	//la clave inicial es mayor a la clave del nodo en el que estamos parados
-	//la siguiente clave a evaluar sigue siendo menor o igual
 	if comparacion > VALOR_CMP && nodo.der != nil {
 		return nodo.der.buscarMinimo(pila, cmp, desde)
 	}
