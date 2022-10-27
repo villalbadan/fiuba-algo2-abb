@@ -206,7 +206,7 @@ func (dict *ab[K, V]) Iterador() IterDiccionario[K, V] {
 }
 
 func (iter *iteradorDict[K, V]) HaySiguiente() bool {
-	if iter.rangoMax != nil {
+	if iter.rangoMax != nil && iter.actual != nil {
 		resultadoCmp := iter.diccionario.cmp(iter.actual.clave, *iter.rangoMax)
 		return !iter.pilaElementos.EstaVacia() && resultadoCmp < VALOR_CMP
 	}
@@ -250,14 +250,26 @@ func (nodo *nodoAb[K, V]) iterarRango(desde *K, hasta *K, visitar func(K, V) boo
 	if nodo == nil {
 		return
 	}
-	if nodo.izq != nil && cmp(nodo.clave, *desde) > VALOR_CMP {
-		nodo.izq.iterar(visitar)
+	if desde == nil && hasta == nil {
+		nodo.iterar(visitar)
+	}
+
+	if nodo.izq != nil {
+		if desde == nil {
+			nodo.izq.iterar(visitar)
+		} else if cmp(nodo.clave, *desde) > VALOR_CMP {
+			nodo.izq.iterarRango(desde, hasta, visitar, cmp)
+		}
 	}
 	if !visitar(nodo.clave, nodo.dato) {
 		return
 	}
-	if nodo.der != nil && cmp(nodo.clave, *hasta) < VALOR_CMP {
-		nodo.der.iterar(visitar)
+	if nodo.der != nil {
+		if hasta == nil {
+			nodo.der.iterar(visitar)
+		} else if cmp(nodo.clave, *hasta) > VALOR_CMP {
+			nodo.der.iterarRango(desde, hasta, visitar, cmp)
+		}
 	}
 
 }
@@ -285,5 +297,4 @@ func (nodo *nodoAb[K, V]) buscarMinimo(pila TDAPila.Pila[*nodoAb[K, V]], cmp fun
 		pila.Apilar(nodo)
 	}
 	return nodo
-
 }
