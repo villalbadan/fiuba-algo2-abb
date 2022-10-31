@@ -24,6 +24,22 @@ func mayorEntreStrings(clave1, clave2 string) int {
 
 //--------------------------------------------------------------------------------------------------------------------
 
+func armarDictDeClavesInt[V any](arregloClaves []int, arregloDatos []V) TDADiccionario.DiccionarioOrdenado[int, V] {
+	dicc := TDADiccionario.CrearABB[int, V](mayorEntreInts)
+	for i := 0; i < len(arregloClaves); i++ {
+		dicc.Guardar(arregloClaves[i], arregloDatos[i])
+	}
+	return dicc
+}
+
+func armarDictDeClavesString[V any](arregloClaves []string, arregloDatos []V) TDADiccionario.DiccionarioOrdenado[string, V] {
+	dicc := TDADiccionario.CrearABB[string, V](mayorEntreStrings)
+	for i := 0; i < len(arregloClaves); i++ {
+		dicc.Guardar(arregloClaves[i], arregloDatos[i])
+	}
+	return dicc
+}
+
 func TestDiccionarioVacio(t *testing.T) {
 	dicc := TDADiccionario.CrearABB[int, string](mayorEntreInts)
 	t.Log("Diccionario recién creado actua como vacio")
@@ -154,18 +170,113 @@ func TestDiccionarioTipoLista(t *testing.T) {
 
 func TestIteraEnOrden(t *testing.T) {
 	t.Log("Iterador interno itera en orden")
-	dicc := TDADiccionario.CrearABB[string, int](strings.Compare)
 	arregloClaves := []string{"G", "K", "M", "B", "C", "W", "O", "A", "V", "F"}
 	arregloDatos := []int{4, 5, 6, 1, 2, 9, 7, 0, 8, 3}
-
-	for i := 0; i < len(arregloClaves); i++ {
-		dicc.Guardar(arregloClaves[i], arregloDatos[i])
-	}
+	dicc := armarDictDeClavesString(arregloClaves, arregloDatos)
 	sort.Strings(arregloClaves)
 	i := 0
 	dicc.Iterar(func(clave string, dato int) bool {
 		require.EqualValues(t, i, dato)
 		i++
+		return true
+	})
+
+}
+
+func TestIterarConRangoFueraDeDict(t *testing.T) {
+	t.Log("Iterador interno con rango fuera del dict itera correctamente")
+	arregloDatos := []string{"G", "K", "M", "B", "C", "O", "V", "F"}
+	arregloClaves := []int{4, 5, 6, 2, 9, 7, 8, 3}
+	dicc := armarDictDeClavesInt(arregloClaves, arregloDatos)
+
+	inicio := 1
+	fin := 15
+	inicioPtr := &inicio
+	finPtr := &fin
+
+	dicc.IterarRango(inicioPtr, finPtr, func(clave int, dato string) bool {
+		return true
+	})
+
+}
+
+func TestIterarConSinDesde(t *testing.T) {
+	t.Log("Iterador interno con rango fuera del dict itera correctamente")
+	arregloDatos := []string{"G", "K", "M", "B", "C", "O", "V", "F"}
+	arregloClaves := []int{4, 5, 6, 2, 9, 7, 8, 3}
+	dicc := armarDictDeClavesInt(arregloClaves, arregloDatos)
+
+	fin := 4
+	finPtr := &fin
+	claves := []int{2, 3, 4}
+	i := 0
+	iptr := &i
+	dicc.IterarRango(nil, finPtr, func(clave int, dato string) bool {
+		require.EqualValues(t, claves[i], clave)
+		*iptr = *iptr + 1
+		return true
+	})
+
+}
+
+func TestIterarConSinHasta(t *testing.T) {
+	t.Log("Iterador interno con rango fuera del dict itera correctamente")
+	arregloDatos := []string{"G", "K", "M", "B", "C", "O", "V", "F"}
+	arregloClaves := []int{4, 5, 6, 2, 9, 7, 8, 3}
+	dicc := armarDictDeClavesInt(arregloClaves, arregloDatos)
+
+	inicio := 6
+	inicioPtr := &inicio
+	claves := []int{6, 7, 8, 9}
+	i := 0
+	iptr := &i
+	dicc.IterarRango(inicioPtr, nil, func(clave int, dato string) bool {
+		require.EqualValues(t, claves[i], clave)
+		*iptr = *iptr + 1
+		return true
+	})
+
+}
+
+func TestIterarConRangoClavesEnDict(t *testing.T) {
+	t.Log("Iterador interno con rango, claves de inicio y fin existentes en el dict")
+	arregloDatos := []string{"G", "K", "M", "B", "C", "O", "V", "F"}
+	arregloClaves := []int{4, 5, 6, 2, 9, 7, 8, 3}
+	dicc := armarDictDeClavesInt(arregloClaves, arregloDatos)
+
+	inicio := 6
+	inicioPtr := &inicio
+	fin := 9
+	finPtr := &fin
+	claves := []int{6, 7, 8, 9}
+
+	i := 0
+	iptr := &i
+	dicc.IterarRango(inicioPtr, finPtr, func(clave int, dato string) bool {
+		require.EqualValues(t, claves[i], clave)
+		*iptr = *iptr + 1
+		return true
+	})
+
+}
+
+func TestIterarConRangoClavesOrdenadas(t *testing.T) {
+	t.Log("Iterador interno con rango, claves ingresan ordenadas")
+	arregloDatos := []string{"G", "K", "M", "B", "C", "O", "V", "F", "A", "H"}
+	arregloClaves := []int{0, 1, 2, 3, 4, 5, 6, 7, 8, 9}
+	dicc := armarDictDeClavesInt(arregloClaves, arregloDatos)
+
+	inicio := 2
+	inicioPtr := &inicio
+	fin := 5
+	finPtr := &fin
+	claves := []int{2, 3, 4, 5}
+
+	i := 0
+	iptr := &i
+	dicc.IterarRango(inicioPtr, finPtr, func(clave int, dato string) bool {
+		require.EqualValues(t, claves[i], clave)
+		*iptr = *iptr + 1
 		return true
 	})
 
@@ -192,6 +303,28 @@ func TestIterarSumaCorrectamente(t *testing.T) {
 
 }
 
+func TestIterarConRangoSuma(t *testing.T) {
+	t.Log("Iterador interno con rango realiza la suma de todos los datos del rango")
+	claves := []string{"G", "K", "M", "B"}
+	datos := []int{4, 5, 6, 1}
+	dicc := armarDictDeClavesString(claves, datos)
+
+	suma := 0
+	sumaPtr := &suma
+	inicio := "G"
+	fin := "N"
+
+	dicc.IterarRango(&inicio, &fin, func(clave string, dato int) bool {
+		*sumaPtr = *sumaPtr + dato
+		return true
+	})
+
+	require.EqualValues(t, 15, suma)
+
+}
+
+// TEST EXTERNO --------------------------------------------------------------------------
+
 func TestIteradorVacio(t *testing.T) {
 	t.Log("Se puede crear iterador de diccionario vacio")
 	dicc := TDADiccionario.CrearABB[int, int](mayorEntreInts)
@@ -205,15 +338,12 @@ func TestIteradorVacio(t *testing.T) {
 
 func TestIteradorEnOrden(t *testing.T) {
 	t.Log("Iterador externo itera en orden")
-	dicc := TDADiccionario.CrearABB[int, string](mayorEntreInts)
 
 	arregloClaves := []int{15, 12, 8, 2, 4, 34, 26, 51, 16, 22, 45, 30}
 	arregloDatos := []string{"Vaca", "Gato", "Perro", "Pollo", "Raton", "Paloma",
 		"Avestruz", "Pez", "Tigre", "Leon", "Jirafa", "Oso"}
+	dicc := armarDictDeClavesInt(arregloClaves, arregloDatos)
 
-	for i := 0; i < len(arregloClaves); i++ {
-		dicc.Guardar(arregloClaves[i], arregloDatos[i])
-	}
 	iter := dicc.Iterador()
 	sort.Ints(arregloClaves)
 
@@ -224,16 +354,13 @@ func TestIteradorEnOrden(t *testing.T) {
 }
 
 func TestIteradorConRango(t *testing.T) {
-	t.Log("Iterador con rango itera en orden")
-	dicc := TDADiccionario.CrearABB[int, string](mayorEntreInts)
+	t.Log("Iterador con rango itera en orden, con desde y hasta claves no existentes en el dict")
 	arregloClaves := []int{8, 1, 24, 12, 32, 5, 149, 224}
 	arregloDatos := []string{"A", "Ante", "Bajo", "Contra", "Desde", "Entre", "Hacia", "Hasta"}
+	dicc := armarDictDeClavesInt(arregloClaves, arregloDatos)
 	desde := 10
 	hasta := 100
 
-	for i := 0; i < len(arregloClaves); i++ {
-		dicc.Guardar(arregloClaves[i], arregloDatos[i])
-	}
 	iterRango := dicc.IteradorRango(&desde, &hasta)
 	sort.Ints(arregloClaves)
 	arregloClaves = arregloClaves[3:6] // Valores que entran dentro del rango
@@ -246,26 +373,23 @@ func TestIteradorConRango(t *testing.T) {
 
 }
 
-func TestIterarConRangoSuma(t *testing.T) {
-	t.Log("Iterador interno con rango realiza la suma de todos los datos del rango")
-	dicc := TDADiccionario.CrearABB[string, int](strings.Compare)
-	claves := []string{"G", "K", "M", "B"}
-	datos := []int{4, 5, 6, 1}
+func TestIteradorConRangoClavesExistentes(t *testing.T) {
+	t.Log("Iterador con rango itera en orden, con desde y hasta claves existentes en el dict")
+	arregloClaves := []int{8, 1, 24, 12, 32, 5, 149, 224}
+	arregloDatos := []string{"A", "Ante", "Bajo", "Contra", "Desde", "Entre", "Hacia", "Hasta"}
+	dicc := armarDictDeClavesInt(arregloClaves, arregloDatos)
 
-	for i := 0; i < len(claves); i++ {
-		dicc.Guardar(claves[i], datos[i])
+	desde := 5
+	hasta := 32
+
+	iterRango := dicc.IteradorRango(&desde, &hasta)
+	claves := []int{5, 8, 12, 24, 32}
+	primeraClave, _ := iterRango.VerActual()
+	require.EqualValues(t, 5, primeraClave) // para verificar que se eligio bien el primer elemento
+
+	for i := 0; iterRango.HaySiguiente(); i++ {
+		require.EqualValues(t, claves[i], iterRango.Siguiente())
 	}
-	suma := 0
-	sumaPtr := &suma
-	inicio := "G"
-	fin := "N"
-
-	dicc.IterarRango(&inicio, &fin, func(clave string, dato int) bool {
-		*sumaPtr = *sumaPtr + dato
-		return true
-	})
-
-	require.EqualValues(t, 15, suma)
 
 }
 

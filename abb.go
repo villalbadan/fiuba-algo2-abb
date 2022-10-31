@@ -41,10 +41,6 @@ func CrearABB[K comparable, V any](funcion_cmp funcCmp[K]) DiccionarioOrdenado[K
 	return dict
 }
 
-/* func Comparacion[K comparable](K, K)
-¿Hay que definirla?
-*/
-
 func (dict *ab[K, V]) buscar(clave K, nodoActual **nodoAb[K, V]) **nodoAb[K, V] {
 	if (*nodoActual) == nil {
 		return nodoActual
@@ -68,10 +64,13 @@ func (dict *ab[K, V]) buscar(clave K, nodoActual **nodoAb[K, V]) **nodoAb[K, V] 
 
 // ################################### Aux. Borrar #########################################################
 
+// noTieneHijos recibe un nodo, y devuelve True si su hijo izquierdo y su hijo derecho son ambos nil
 func noTieneHijos[K comparable, V any](nodo **nodoAb[K, V]) bool {
 	return (*nodo).izq == nil && (*nodo).der == nil
 }
 
+// reemplazante recibe un nodo de un abb y devuelve el nodo menor hacia la izquierda
+//(== con un solo hijo a la derecha o sin hijos) de toda la rama, incluyendose a si mismo
 func (dict *ab[K, V]) reemplazante(nodoActual **nodoAb[K, V]) *nodoAb[K, V] {
 
 	if noTieneHijos(nodoActual) || (*nodoActual).izq == nil {
@@ -80,6 +79,8 @@ func (dict *ab[K, V]) reemplazante(nodoActual **nodoAb[K, V]) *nodoAb[K, V] {
 	return dict.reemplazante(&(*nodoActual).izq)
 }
 
+// transplantar recibe un nodo a borrar (con hijos). Si tiene un solo hijo, lo reemplaza por su hijo,
+// si tiene dos hijos, busca el reemplazante en la rama de su hijo derecho.
 func (dict *ab[K, V]) transplantar(nodo **nodoAb[K, V]) {
 
 	//nodo con un solo hijo
@@ -182,6 +183,11 @@ func (nodo *nodoAb[K, V]) iterar(visitar func(K, V) bool) {
 func (dict *ab[K, V]) crearIter(desde *K, hasta *K) IterDiccionario[K, V] {
 	iter := iteradorDict[K, V]{diccionario: dict, rangoMin: desde, rangoMax: hasta}
 	iter.pilaElementos = TDAPila.CrearPilaDinamica[*nodoAb[K, V]]()
+
+	if hasta != nil && desde != nil && dict.cmp(*desde, *hasta) > VALOR_CMP {
+		return &iter
+	}
+
 	if desde == nil {
 		iter.actual = dict.raiz.buscarHijosIzquierdayApilar(iter.pilaElementos)
 	} else {
@@ -190,6 +196,8 @@ func (dict *ab[K, V]) crearIter(desde *K, hasta *K) IterDiccionario[K, V] {
 	return &iter
 }
 
+// buscarHijosIzquierdayApilar dado un nodo, busca todos los hijos a la izquierda y los apila
+// se detiene cuando no hay más hijos a la izquierda que apilar
 func (nodo *nodoAb[K, V]) buscarHijosIzquierdayApilar(pila TDAPila.Pila[*nodoAb[K, V]]) *nodoAb[K, V] {
 	if nodo == nil {
 		return nil
@@ -208,7 +216,7 @@ func (dict *ab[K, V]) Iterador() IterDiccionario[K, V] {
 func (iter *iteradorDict[K, V]) HaySiguiente() bool {
 	if iter.rangoMax != nil && iter.actual != nil {
 		resultadoCmp := iter.diccionario.cmp(iter.actual.clave, *iter.rangoMax)
-		return !iter.pilaElementos.EstaVacia() && resultadoCmp < VALOR_CMP
+		return !iter.pilaElementos.EstaVacia() && resultadoCmp <= VALOR_CMP
 	}
 	return !iter.pilaElementos.EstaVacia()
 }
@@ -245,7 +253,9 @@ func (dict ab[K, V]) IteradorRango(desde *K, hasta *K) IterDiccionario[K, V] {
 func (dict ab[K, V]) IterarRango(desde *K, hasta *K, visitar func(clave K, dato V) bool) {
 	if desde == nil && hasta == nil {
 		dict.raiz.iterar(visitar)
-	} else if desde == nil || hasta == nil || dict.cmp(*hasta, *desde) > VALOR_CMP {
+		return
+	}
+	if desde == nil || hasta == nil || dict.cmp(*hasta, *desde) > VALOR_CMP {
 		dict.raiz.iterarRango(desde, hasta, visitar, dict.cmp)
 	}
 }
@@ -255,49 +265,28 @@ func (nodo *nodoAb[K, V]) iterarRango(desde *K, hasta *K, visitar func(K, V) boo
 		return
 	}
 
-	if desde == nil && hasta != nil {
+	// comparaciones con desde y hasta
+	mayorADesde := desde == nil || (desde != nil && cmp(nodo.clave, *desde) > VALOR_CMP)
+	menorAHasta := hasta == nil || (hasta != nil && cmp(nodo.clave, *hasta) < VALOR_CMP)
+	mayorOIgualADesde := desde != nil && cmp(nodo.clave, *desde) >= VALOR_CMP
+	menorOIgualAHasta := hasta != nil && cmp(nodo.clave, *hasta) <= VALOR_CMP
+
+	//condiciones combinadadas
+	sinHastaYEnRangoDeDesde := hasta == nil && mayorOIgualADesde
+	sinDesdeYEnRangoDeHasta := desde == nil && menorOIgualAHasta
+	claveEnRango := menorOIgualAHasta && mayorOIgualADesde
+
+	if mayorADesde {
 		nodo.izq.iterarRango(desde, hasta, visitar, cmp)
-		if cmp(nodo.clave, *hasta) < VALOR_CMP && !visitar(nodo.clave, nodo.dato) {
-			return
-		}
-		if cmp(nodo.clave, *hasta) < VALOR_CMP {
-			nodo.der.iterarRango(desde, hasta, visitar, cmp)
-		}
 	}
-	if desde != nil && hasta == nil {
-		if cmp(nodo.clave, *desde) > VALOR_CMP {
-			nodo.izq.iterarRango(desde, hasta, visitar, cmp)
-		}
-		if cmp(nodo.clave, *desde) > VALOR_CMP && !visitar(nodo.clave, nodo.dato) {
-			return
-		}
+
+	if sinHastaYEnRangoDeDesde || sinDesdeYEnRangoDeHasta || (claveEnRango && !visitar(nodo.clave, nodo.dato)) {
+		return
+	}
+
+	if menorAHasta {
 		nodo.der.iterarRango(desde, hasta, visitar, cmp)
-
 	}
-	if desde != nil && hasta != nil {
-		if cmp(nodo.clave, *desde) > VALOR_CMP {
-			nodo.izq.iterarRango(desde, hasta, visitar, cmp)
-		}
-		if cmp(nodo.clave, *desde) > VALOR_CMP && cmp(nodo.clave, *hasta) < VALOR_CMP &&
-			!visitar(nodo.clave, nodo.dato) {
-			return
-		}
-		if cmp(nodo.clave, *hasta) < VALOR_CMP {
-			nodo.der.iterarRango(desde, hasta, visitar, cmp)
-		}
-
-	}
-
-	// if desde == nil || nodo.izq != nil && cmp(nodo.clave, *desde) > VALOR_CMP {
-	// 	nodo.izq.iterarRango(desde, hasta, visitar, cmp)
-	// }
-	// if cmp(nodo.clave, *desde) > VALOR_CMP && cmp(nodo.clave, *hasta) < VALOR_CMP &&
-	// 	!visitar(nodo.clave, nodo.dato) {
-	// 	return
-	// }
-	// if hasta == nil || nodo.der != nil && cmp(nodo.clave, *hasta) < VALOR_CMP {
-	// 	nodo.der.iterarRango(desde, hasta, visitar, cmp)
-	// }
 
 }
 
@@ -309,7 +298,7 @@ func (nodo *nodoAb[K, V]) buscarMinimo(pila TDAPila.Pila[*nodoAb[K, V]], cmp fun
 	comparacion := cmp(*desde, nodo.clave)
 	//la clave inicial es menor a la clave del nodo en el que estamos parados
 	//la siguiente clave a evaluar es mayor o igual
-	if comparacion < VALOR_CMP && nodo.izq != nil && cmp(*desde, nodo.izq.clave) <= VALOR_CMP {
+	if comparacion < VALOR_CMP && nodo.izq != nil {
 		pila.Apilar(nodo)
 		return nodo.izq.buscarMinimo(pila, cmp, desde)
 	}
@@ -324,4 +313,5 @@ func (nodo *nodoAb[K, V]) buscarMinimo(pila TDAPila.Pila[*nodoAb[K, V]], cmp fun
 		pila.Apilar(nodo)
 	}
 	return nodo
+
 }
