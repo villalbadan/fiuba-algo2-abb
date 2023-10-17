@@ -160,22 +160,28 @@ func (dict *ab[K, V]) Borrar(clave K) V {
 //Iterador interno ------------------------------------------------->>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 func (dict ab[K, V]) Iterar(visitar func(K, V) bool) {
-	dict.raiz.iterar(visitar)
+	continuo := true
+	continuoPtr := &continuo
+	dict.raiz.iterar(visitar, continuoPtr)
 }
 
-func (nodo *nodoAb[K, V]) iterar(visitar func(K, V) bool) {
+func (nodo *nodoAb[K, V]) iterar(visitar func(K, V) bool, continuoPtr *bool) {
+
 	if nodo == nil {
 		return
 	}
+
 	if nodo.izq != nil {
-		nodo.izq.iterar(visitar)
+		nodo.izq.iterar(visitar, continuoPtr)
 	}
-	if !visitar(nodo.clave, nodo.dato) {
+	if *continuoPtr && !visitar(nodo.clave, nodo.dato) {
+		*continuoPtr = false
 		return
 	}
 	if nodo.der != nil {
-		nodo.der.iterar(visitar)
+		nodo.der.iterar(visitar, continuoPtr)
 	}
+	return
 
 }
 
@@ -251,41 +257,47 @@ func (dict ab[K, V]) IteradorRango(desde *K, hasta *K) IterDiccionario[K, V] {
 }
 
 func (dict ab[K, V]) IterarRango(desde *K, hasta *K, visitar func(clave K, dato V) bool) {
+	continuo := true
+	continuoPtr := &continuo
+
 	if desde == nil && hasta == nil {
-		dict.raiz.iterar(visitar)
+		dict.raiz.iterar(visitar, continuoPtr)
 		return
 	}
+
 	if desde == nil || hasta == nil || dict.cmp(*hasta, *desde) > VALOR_CMP {
-		dict.raiz.iterarRango(desde, hasta, visitar, dict.cmp)
+		dict.raiz.iterarRango(desde, hasta, visitar, dict.cmp, continuoPtr)
 	}
 }
 
-func (nodo *nodoAb[K, V]) iterarRango(desde *K, hasta *K, visitar func(K, V) bool, cmp funcCmp[K]) {
+func (nodo *nodoAb[K, V]) iterarRango(desde *K, hasta *K, visitar func(K, V) bool, cmp funcCmp[K], continuoPtr *bool) {
+
 	if nodo == nil {
 		return
 	}
 
-	// comparaciones con desde y hasta
-	mayorADesde := desde == nil || (desde != nil && cmp(nodo.clave, *desde) > VALOR_CMP)
-	menorAHasta := hasta == nil || (hasta != nil && cmp(nodo.clave, *hasta) < VALOR_CMP)
-	mayorOIgualADesde := desde != nil && cmp(nodo.clave, *desde) >= VALOR_CMP
-	menorOIgualAHasta := hasta != nil && cmp(nodo.clave, *hasta) <= VALOR_CMP
+	//CONDICIONES de rango
+	var (
+		mayorADesde       = desde != nil && cmp(nodo.clave, *desde) > VALOR_CMP
+		menorAHasta       = hasta != nil && cmp(nodo.clave, *hasta) < VALOR_CMP
+		mayorOIgualADesde = desde != nil && cmp(nodo.clave, *desde) >= VALOR_CMP
+		menorOIgualAHasta = hasta != nil && cmp(nodo.clave, *hasta) <= VALOR_CMP
+		soloHasta         = desde == nil && menorOIgualAHasta
+		soloDesde         = mayorOIgualADesde && hasta == nil
+	)
 
-	//condiciones combinadadas
-	sinHastaYEnRangoDeDesde := hasta == nil && mayorOIgualADesde
-	sinDesdeYEnRangoDeHasta := desde == nil && menorOIgualAHasta
-	claveEnRango := menorOIgualAHasta && mayorOIgualADesde
-
-	if mayorADesde {
-		nodo.izq.iterarRango(desde, hasta, visitar, cmp)
+	if (desde == nil) || mayorADesde {
+		nodo.izq.iterarRango(desde, hasta, visitar, cmp, continuoPtr)
 	}
 
-	if sinHastaYEnRangoDeDesde || sinDesdeYEnRangoDeHasta || (claveEnRango && !visitar(nodo.clave, nodo.dato)) {
+	if *continuoPtr &&
+		(soloHasta || soloDesde || (mayorOIgualADesde && menorOIgualAHasta)) && !visitar(nodo.clave, nodo.dato) {
+		*continuoPtr = false
 		return
 	}
 
-	if menorAHasta {
-		nodo.der.iterarRango(desde, hasta, visitar, cmp)
+	if (hasta == nil) || menorAHasta {
+		nodo.der.iterarRango(desde, hasta, visitar, cmp, continuoPtr)
 	}
 
 }

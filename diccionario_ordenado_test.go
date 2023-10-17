@@ -10,7 +10,11 @@ import (
 	"testing"
 )
 
-var TAMS_VOLUMEN = []int{12500, 25000, 50000, 100000, 200000, 400000}
+var (
+	TAMS_VOLUMEN    = []int{12500, 25000, 50000, 100000, 200000, 400000}
+	ARREGLO_STRINGS = []string{"G", "K", "M", "B", "C", "W", "O", "A", "V", "F"}
+	ARREGLO_INTS    = []int{4, 5, 6, 1, 2, 9, 7, 0, 8, 3}
+)
 
 //FUNC CMP -----------------------------------------------------------------------------------------------------------
 
@@ -171,8 +175,7 @@ func TestDiccionarioTipoLista(t *testing.T) {
 func TestIteraEnOrden(t *testing.T) {
 	t.Log("Iterador interno itera en orden")
 	arregloClaves := []string{"G", "K", "M", "B", "C", "W", "O", "A", "V", "F"}
-	arregloDatos := []int{4, 5, 6, 1, 2, 9, 7, 0, 8, 3}
-	dicc := armarDictDeClavesString(arregloClaves, arregloDatos)
+	dicc := armarDictDeClavesString(arregloClaves, ARREGLO_INTS)
 	sort.Strings(arregloClaves)
 	i := 0
 	dicc.Iterar(func(clave string, dato int) bool {
@@ -185,9 +188,7 @@ func TestIteraEnOrden(t *testing.T) {
 
 func TestIterarConRangoFueraDeDict(t *testing.T) {
 	t.Log("Iterador interno con rango fuera del dict itera correctamente")
-	arregloDatos := []string{"G", "K", "M", "B", "C", "O", "V", "F"}
-	arregloClaves := []int{4, 5, 6, 2, 9, 7, 8, 3}
-	dicc := armarDictDeClavesInt(arregloClaves, arregloDatos)
+	dicc := armarDictDeClavesInt(ARREGLO_INTS, ARREGLO_STRINGS)
 
 	inicio := 1
 	fin := 15
@@ -202,13 +203,11 @@ func TestIterarConRangoFueraDeDict(t *testing.T) {
 
 func TestIterarConSinDesde(t *testing.T) {
 	t.Log("Iterador interno con rango fuera del dict itera correctamente")
-	arregloDatos := []string{"G", "K", "M", "B", "C", "O", "V", "F"}
-	arregloClaves := []int{4, 5, 6, 2, 9, 7, 8, 3}
-	dicc := armarDictDeClavesInt(arregloClaves, arregloDatos)
+	dicc := armarDictDeClavesInt(ARREGLO_INTS, ARREGLO_STRINGS)
 
 	fin := 4
 	finPtr := &fin
-	claves := []int{2, 3, 4}
+	claves := []int{0, 1, 2, 3, 4}
 	i := 0
 	iptr := &i
 	dicc.IterarRango(nil, finPtr, func(clave int, dato string) bool {
@@ -221,9 +220,7 @@ func TestIterarConSinDesde(t *testing.T) {
 
 func TestIterarConSinHasta(t *testing.T) {
 	t.Log("Iterador interno con rango fuera del dict itera correctamente")
-	arregloDatos := []string{"G", "K", "M", "B", "C", "O", "V", "F"}
-	arregloClaves := []int{4, 5, 6, 2, 9, 7, 8, 3}
-	dicc := armarDictDeClavesInt(arregloClaves, arregloDatos)
+	dicc := armarDictDeClavesInt(ARREGLO_INTS, ARREGLO_STRINGS)
 
 	inicio := 6
 	inicioPtr := &inicio
@@ -238,11 +235,40 @@ func TestIterarConSinHasta(t *testing.T) {
 
 }
 
+func TestIterarRangoPara(t *testing.T) {
+	t.Log("Iterador interno con rango fuera del dict itera correctamente")
+	dicc := armarDictDeClavesInt(ARREGLO_INTS, ARREGLO_STRINGS)
+
+	inicio := 6
+	inicioPtr := &inicio
+	var ultimaClave int
+	ultimaPtr := &ultimaClave
+	dicc.IterarRango(inicioPtr, nil, func(clave int, dato string) bool {
+		*ultimaPtr = clave
+		return clave != 8
+	})
+
+	require.EqualValues(t, 8, ultimaClave)
+
+}
+
+func TestIterarParaEnFalse(t *testing.T) {
+	t.Log("Iterador interno con rango fuera del dict itera correctamente")
+	dicc := armarDictDeClavesInt(ARREGLO_INTS, ARREGLO_STRINGS)
+	var ultimaClave int
+	ultimaPtr := &ultimaClave
+
+	dicc.Iterar(func(clave int, dato string) bool {
+		*ultimaPtr = clave
+		return clave != 3
+	})
+	require.EqualValues(t, 3, ultimaClave)
+
+}
+
 func TestIterarConRangoClavesEnDict(t *testing.T) {
 	t.Log("Iterador interno con rango, claves de inicio y fin existentes en el dict")
-	arregloDatos := []string{"G", "K", "M", "B", "C", "O", "V", "F"}
-	arregloClaves := []int{4, 5, 6, 2, 9, 7, 8, 3}
-	dicc := armarDictDeClavesInt(arregloClaves, arregloDatos)
+	dicc := armarDictDeClavesInt(ARREGLO_INTS, ARREGLO_STRINGS)
 
 	inicio := 6
 	inicioPtr := &inicio
@@ -262,9 +288,8 @@ func TestIterarConRangoClavesEnDict(t *testing.T) {
 
 func TestIterarConRangoClavesOrdenadas(t *testing.T) {
 	t.Log("Iterador interno con rango, claves ingresan ordenadas")
-	arregloDatos := []string{"G", "K", "M", "B", "C", "O", "V", "F", "A", "H"}
 	arregloClaves := []int{0, 1, 2, 3, 4, 5, 6, 7, 8, 9}
-	dicc := armarDictDeClavesInt(arregloClaves, arregloDatos)
+	dicc := armarDictDeClavesInt(arregloClaves, ARREGLO_STRINGS)
 
 	inicio := 2
 	inicioPtr := &inicio
